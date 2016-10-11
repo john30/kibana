@@ -37,20 +37,29 @@ RUN set -x \
 RUN apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys 46095ACC8548582C1A2699A9D27D666CD88E42B4
 
 ENV KIBANA_MAJOR 5.0
-ENV KIBANA_VERSION 5.0.0-alpha5
+ENV KIBANA_VERSION 5.0.0-rc1
 
 #RUN echo "deb http://packages.elastic.co/kibana/${KIBANA_MAJOR}/debian stable main" > /etc/apt/sources.list.d/kibana.list
-RUN echo 'deb http://packages.elastic.co/kibana/5.0.0-alpha/debian stable main' > /etc/apt/sources.list.d/kibana.list
+#RUN echo 'deb http://packages.elastic.co/kibana/5.0.0-alpha/debian stable main' > /etc/apt/sources.list.d/kibana.list
 # TODO figure out what's going on here and what it'll settle to for 5.0 GA
-
 RUN set -x \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends kibana=$KIBANA_VERSION \
-	&& rm -rf /var/lib/apt/lists/* \
-	\
+	&& wget -O kibana.deb "https://artifacts.elastic.co/downloads/kibana/kibana-${KIBANA_VERSION}-amd64.deb" \
+	&& dpkg -i kibana.deb \
+	&& rm kibana.deb \
+# set the server.host to 0.0.0.0
+	&& sed -ri "s!^(\#\s*)?(server\.host:).*!\2 '0.0.0.0'!" /etc/kibana/kibana.yml \
 # ensure the default configuration is useful when using --link
 	&& sed -ri "s!^(\#\s*)?(elasticsearch\.url:).*!\2 'http://elasticsearch:9200'!" /etc/kibana/kibana.yml \
 	&& grep -q 'elasticsearch:9200' /etc/kibana/kibana.yml
+
+#RUN set -x \
+#	&& apt-get update \
+#	&& apt-get install -y --no-install-recommends kibana=$KIBANA_VERSION \
+#	&& rm -rf /var/lib/apt/lists/* \
+#	\
+# ensure the default configuration is useful when using --link
+#	&& sed -ri "s!^(\#\s*)?(elasticsearch\.url:).*!\2 'http://elasticsearch:9200'!" /etc/kibana/kibana.yml \
+#	&& grep -q 'elasticsearch:9200' /etc/kibana/kibana.yml
 
 ENV PATH /usr/share/kibana/bin:$PATH
 
